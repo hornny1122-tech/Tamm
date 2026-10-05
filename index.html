@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AR Washing Machine</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;overflow:hidden;font-family:Arial,"Noto Sans Thai",sans-serif;background:#000}
+#controls{position:fixed;z-index:9999;left:50%;bottom:20px;transform:translateX(-50%);width:min(94%,500px);padding:14px;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);border-radius:20px;color:#fff;text-align:center}
+#title{font-size:20px;font-weight:bold;margin-bottom:10px}#speedText{margin:8px 0 12px;font-size:16px}
+.button-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+button{border:0;border-radius:12px;padding:12px 15px;background:#fff;color:#111;font-size:15px;font-weight:bold;cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.95)}#status{margin-top:10px;font-size:13px;color:#9cff9c}
+</style>
+</head>
+<body>
+<a-scene embedded vr-mode-ui="enabled:false"
+ renderer="antialias:true;alpha:true;precision:medium"
+ arjs="sourceType:webcam;detectionMode:mono;matrixCodeType:3x3;debugUIEnabled:false">
+<a-entity light="type:ambient;intensity:1.5"></a-entity>
+<a-entity light="type:directional;intensity:2" position="2 4 3"></a-entity>
+
+<a-marker id="hiroMarker" preset="hiro" smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
+<a-entity id="washingMachine">
+<a-box position="0 .85 0" width="1.5" height="1.7" depth="1.15" color="#e8e8e8"></a-box>
+<a-box position="0 1.58 -.58" width="1.35" height=".25" depth=".05" color="#20242a"></a-box>
+<a-box position="-.38 1.60 -.62" width=".38" height=".13" depth=".02" color="#35d9ff"></a-box>
+<a-cylinder position=".30 1.60 -.63" radius=".11" height=".04" rotation="90 0 0" color="#111"></a-cylinder>
+<a-cylinder position="0 .82 -.64" radius=".46" height=".08" rotation="90 0 0" color="#24282d"></a-cylinder>
+<a-cylinder id="doorGlass" position="0 .82 -.69" radius=".37" height=".04" rotation="90 0 0" color="#4aa8c7" opacity=".85" material="transparent:true;metalness:.2;roughness:.1"></a-cylinder>
+<a-torus position="0 .82 -.72" radius=".39" radius-tubular=".045" rotation="90 0 0" color="#111"></a-torus>
+<a-cylinder id="drum" position="0 .82 -.73" radius=".29" height=".05" rotation="90 0 0" color="#6f777c"></a-cylinder>
+<a-torus position="0 .82 -.76" radius=".20" radius-tubular=".025" rotation="90 0 0" color="#bfc4c7"></a-torus>
+<a-box position=".35 1.15 -.75" width=".15" height=".06" depth=".06" color="#111"></a-box>
+<a-box position="0 .05 0" width="1.55" height=".1" depth="1.2" color="#cfcfcf"></a-box>
+</a-entity>
+</a-marker>
+<a-entity camera></a-entity>
+</a-scene>
+
+<div id="controls">
+<div id="title">🧺 AR Washing Machine</div>
+<div id="speedText">ความเร็วถังซัก: <strong id="speedValue">1.0x</strong></div>
+<div class="button-row">
+<button onclick="decreaseSpeed()">➖ ลดความเร็ว</button>
+<button onclick="increaseSpeed()">➕ เพิ่มความเร็ว</button>
+<button onclick="toggleSpin()">▶️ / ⏸️ หมุนถัง</button>
+<button onclick="toggleDoor()">🚪 เปิด / ปิดฝา</button>
+</div>
+<div id="status">📷 กรุณาส่องกล้องไปที่ Hiro Marker</div>
+</div>
+
+<script>
+let speed=1, spinning=true, doorOpen=false;
+const minSpeed=.5,maxSpeed=5,speedStep=.5;
+const drum=document.querySelector("#drum"), doorGlass=document.querySelector("#doorGlass"), marker=document.querySelector("#hiroMarker");
+const speedValue=document.querySelector("#speedValue"), status=document.querySelector("#status");
+
+function updateSpeedDisplay(){speedValue.textContent=speed.toFixed(1)+"x"}
+function increaseSpeed(){speed=Math.min(maxSpeed,speed+speedStep);updateSpeedDisplay()}
+function decreaseSpeed(){speed=Math.max(minSpeed,speed-speedStep);updateSpeedDisplay()}
+function toggleSpin(){spinning=!spinning;status.textContent=spinning?"🌀 ถังซักกำลังหมุน":"⏸️ ถังซักหยุดทำงาน"}
+function toggleDoor(){
+ doorOpen=!doorOpen;
+ if(doorOpen){
+   doorGlass.setAttribute("animation","property:position;to:.35 .82 -.55;dur:700;easing:easeOutQuad");
+   status.textContent="🚪 เปิดฝาถังแล้ว";
+ }else{
+   doorGlass.setAttribute("animation","property:position;to:0 .82 -.69;dur:700;easing:easeOutQuad");
+   status.textContent="🚪 ปิดฝาถังแล้ว";
+ }
+}
+let lastTime=0;
+function animateDrum(time){
+ if(!lastTime)lastTime=time;
+ const delta=(time-lastTime)/1000;lastTime=time;
+ if(spinning&&!doorOpen)drum.object3D.rotation.z+=delta*speed*5;
+ requestAnimationFrame(animateDrum);
+}
+requestAnimationFrame(animateDrum);
+marker.addEventListener("markerFound",()=>status.textContent="✅ พบ Hiro Marker — เครื่องซักผ้าพร้อมใช้งาน");
+marker.addEventListener("markerLost",()=>status.textContent="📷 กรุณาส่องกล้องไปที่ Hiro Marker");
+</script>
+</body>
+</html>
